@@ -1,3 +1,5 @@
 {
+  "auth": "https://functions.poehali.dev/5472267d-fbd8-4c31-b0cc-0589e6b65ba2",
+  "voice": "https://functions.poehali.dev/e6fbfc6f-2e2c-411f-9639-bb2f73d0fd9c",
   "chat": "https://functions.poehali.dev/8043795a-df28-43ad-aee5-df60e3707260"
 }

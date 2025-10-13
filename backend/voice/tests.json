@@ -1,0 +1,14 @@
+{
+  "tests": [
+    {
+      "name": "Get voice channels",
+      "method": "GET",
+      "path": "/",
+      "expectedStatus": 200,
+      "expectedBody": {
+        "channels": "array"
+      },
+      "bodyMatcher": "partial"
+    }
+  ]
+}

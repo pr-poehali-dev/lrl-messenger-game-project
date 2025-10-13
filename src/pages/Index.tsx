@@ -8,6 +8,16 @@ import { Separator } from "@/components/ui/separator";
 import Icon from "@/components/ui/icon";
 
 const CHAT_API = "https://functions.poehali.dev/8043795a-df28-43ad-aee5-df60e3707260";
+const AUTH_API = "https://functions.poehali.dev/5472267d-fbd8-4c31-b0cc-0589e6b65ba2";
+const VOICE_API = "https://functions.poehali.dev/e6fbfc6f-2e2c-411f-9639-bb2f73d0fd9c";
+
+interface User {
+  id: number;
+  username: string;
+  display_name: string;
+  role: string;
+  avatar: string;
+}
 
 interface Message {
   id: number;
@@ -34,21 +44,40 @@ interface Member {
 }
 
 const Index = () => {
+  const [user, setUser] = useState<User | null>(null);
+  const [showAuth, setShowAuth] = useState(true);
+  const [authMode, setAuthMode] = useState<'login' | 'register'>('login');
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [displayName, setDisplayName] = useState("");
   const [activeSection, setActiveSection] = useState<"chat" | "voice" | "members" | "schedule">("chat");
   const [messageInput, setMessageInput] = useState("");
   const [messages, setMessages] = useState<Message[]>([]);
-
-  const voiceChannels: VoiceChannel[] = [];
+  const [voiceChannels, setVoiceChannels] = useState<VoiceChannel[]>([]);
 
   const members: Member[] = [];
 
   const schedule = [];
 
   useEffect(() => {
-    loadMessages();
-    const interval = setInterval(loadMessages, 3000);
-    return () => clearInterval(interval);
+    const savedUser = localStorage.getItem('lrl_user');
+    if (savedUser) {
+      setUser(JSON.parse(savedUser));
+      setShowAuth(false);
+    }
   }, []);
+
+  useEffect(() => {
+    if (user) {
+      loadMessages();
+      loadVoiceChannels();
+      const interval = setInterval(() => {
+        loadMessages();
+        loadVoiceChannels();
+      }, 3000);
+      return () => clearInterval(interval);
+    }
+  }, [user]);
 
   const loadMessages = async () => {
     const response = await fetch(CHAT_API);
@@ -56,22 +85,125 @@ const Index = () => {
     setMessages(data.messages);
   };
 
+  const loadVoiceChannels = async () => {
+    const response = await fetch(VOICE_API);
+    const data = await response.json();
+    setVoiceChannels(data.channels);
+  };
+
+  const handleAuth = async () => {
+    if (!username || !password) return;
+
+    const body: any = {
+      action: authMode,
+      username,
+      password
+    };
+
+    if (authMode === 'register') {
+      body.display_name = displayName || username;
+      body.role = 'Солдат';
+    }
+
+    const response = await fetch(AUTH_API, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    });
+
+    const data = await response.json();
+
+    if (response.ok) {
+      setUser(data.user);
+      localStorage.setItem('lrl_user', JSON.stringify(data.user));
+      localStorage.setItem('lrl_token', data.token);
+      setShowAuth(false);
+    }
+  };
+
+  const handleLogout = () => {
+    setUser(null);
+    localStorage.removeItem('lrl_user');
+    localStorage.removeItem('lrl_token');
+    setShowAuth(true);
+  };
+
   const handleSendMessage = async () => {
-    if (messageInput.trim()) {
+    if (messageInput.trim() && user) {
       await fetch(CHAT_API, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          author: "Рядовой Новобранец",
+          author: user.display_name,
           content: messageInput,
-          role: "Солдат",
-          avatar: "/placeholder.svg"
+          role: user.role,
+          avatar: user.avatar
         })
       });
       setMessageInput("");
       loadMessages();
     }
   };
+
+  if (showAuth) {
+    return (
+      <div className="flex h-screen bg-background items-center justify-center">
+        <div className="w-full max-w-md p-8 bg-card border border-border military-corner">
+          <div className="text-center mb-6">
+            <div className="w-16 h-16 bg-primary mx-auto mb-4 flex items-center justify-center military-corner">
+              <span className="text-3xl">⚔️</span>
+            </div>
+            <h1 className="text-2xl font-bold mb-2">LRL Regiment</h1>
+            <p className="text-muted-foreground text-sm">Loyalists's Russian Legion</p>
+          </div>
+
+          <div className="space-y-4">
+            <div>
+              <Input
+                placeholder="Имя пользователя"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                className="military-corner-small"
+              />
+            </div>
+            <div>
+              <Input
+                type="password"
+                placeholder="Пароль"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                onKeyPress={(e) => e.key === 'Enter' && handleAuth()}
+                className="military-corner-small"
+              />
+            </div>
+            {authMode === 'register' && (
+              <div>
+                <Input
+                  placeholder="Отображаемое имя"
+                  value={displayName}
+                  onChange={(e) => setDisplayName(e.target.value)}
+                  className="military-corner-small"
+                />
+              </div>
+            )}
+            <Button
+              onClick={handleAuth}
+              className="w-full military-corner-small"
+            >
+              {authMode === 'login' ? 'Войти' : 'Зарегистрироваться'}
+            </Button>
+            <Button
+              variant="ghost"
+              onClick={() => setAuthMode(authMode === 'login' ? 'register' : 'login')}
+              className="w-full"
+            >
+              {authMode === 'login' ? 'Создать аккаунт' : 'Уже есть аккаунт'}
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex h-screen bg-background text-foreground overflow-hidden">
@@ -129,15 +261,15 @@ const Index = () => {
         <div className="p-3 border-t border-sidebar-border">
           <div className="flex items-center gap-2">
             <Avatar className="h-8 w-8 border-2 border-accent">
-              <AvatarImage src="/placeholder.svg" />
-              <AvatarFallback>ВЫ</AvatarFallback>
+              <AvatarImage src={user?.avatar} />
+              <AvatarFallback>{user?.display_name[0]}</AvatarFallback>
             </Avatar>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium truncate">Рядовой Новобранец</p>
-              <p className="text-xs text-muted-foreground truncate">Солдат</p>
+              <p className="text-sm font-medium truncate">{user?.display_name}</p>
+              <p className="text-xs text-muted-foreground truncate">{user?.role}</p>
             </div>
-            <Button size="icon" variant="ghost" className="h-8 w-8">
-              <Icon name="Settings" size={16} />
+            <Button size="icon" variant="ghost" className="h-8 w-8" onClick={handleLogout}>
+              <Icon name="LogOut" size={16} />
             </Button>
           </div>
         </div>

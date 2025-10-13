@@ -1,0 +1,38 @@
+{
+  "tests": [
+    {
+      "name": "Register new user",
+      "method": "POST",
+      "path": "/",
+      "body": {
+        "action": "register",
+        "username": "test_soldier",
+        "password": "test123",
+        "display_name": "Рядовой Тестов",
+        "role": "Солдат"
+      },
+      "expectedStatus": 201,
+      "expectedBody": {
+        "user": "object",
+        "token": "string"
+      },
+      "bodyMatcher": "partial"
+    },
+    {
+      "name": "Login existing user",
+      "method": "POST",
+      "path": "/",
+      "body": {
+        "action": "login",
+        "username": "test_soldier",
+        "password": "test123"
+      },
+      "expectedStatus": 200,
+      "expectedBody": {
+        "user": "object",
+        "token": "string"
+      },
+      "bodyMatcher": "partial"
+    }
+  ]
+}
