@@ -10,6 +10,7 @@ import Icon from "@/components/ui/icon";
 const CHAT_API = "https://functions.poehali.dev/8043795a-df28-43ad-aee5-df60e3707260";
 const AUTH_API = "https://functions.poehali.dev/5472267d-fbd8-4c31-b0cc-0589e6b65ba2";
 const VOICE_API = "https://functions.poehali.dev/e6fbfc6f-2e2c-411f-9639-bb2f73d0fd9c";
+const MEMBERS_API = "https://functions.poehali.dev/7693979e-2693-4853-8810-416811336dc9";
 
 interface User {
   id: number;
@@ -54,8 +55,7 @@ const Index = () => {
   const [messageInput, setMessageInput] = useState("");
   const [messages, setMessages] = useState<Message[]>([]);
   const [voiceChannels, setVoiceChannels] = useState<VoiceChannel[]>([]);
-
-  const members: Member[] = [];
+  const [members, setMembers] = useState<Member[]>([]);
 
   const schedule = [];
 
@@ -71,9 +71,11 @@ const Index = () => {
     if (user) {
       loadMessages();
       loadVoiceChannels();
+      loadMembers();
       const interval = setInterval(() => {
         loadMessages();
         loadVoiceChannels();
+        loadMembers();
       }, 3000);
       return () => clearInterval(interval);
     }
@@ -89,6 +91,12 @@ const Index = () => {
     const response = await fetch(VOICE_API);
     const data = await response.json();
     setVoiceChannels(data.channels);
+  };
+
+  const loadMembers = async () => {
+    const response = await fetch(MEMBERS_API);
+    const data = await response.json();
+    setMembers(data.members);
   };
 
   const handleAuth = async () => {

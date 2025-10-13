@@ -83,6 +83,12 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                 RETURNING id, username, display_name, role, avatar
             ''', (username, password_hash, display_name, role))
             user = cur.fetchone()
+            
+            cur.execute('''
+                INSERT INTO members (name, role, status, avatar)
+                VALUES (%s, %s, %s, %s)
+            ''', (display_name, role, 'online', user['avatar']))
+            
             conn.commit()
         
         conn.close()

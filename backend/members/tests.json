@@ -1,0 +1,14 @@
+{
+  "tests": [
+    {
+      "name": "Get members list",
+      "method": "GET",
+      "path": "/",
+      "expectedStatus": 200,
+      "expectedBody": {
+        "members": "array"
+      },
+      "bodyMatcher": "partial"
+    }
+  ]
+}
