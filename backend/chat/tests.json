@@ -1,0 +1,30 @@
+{
+  "tests": [
+    {
+      "name": "Get messages list",
+      "method": "GET",
+      "path": "/",
+      "expectedStatus": 200,
+      "expectedBody": {
+        "messages": "array"
+      },
+      "bodyMatcher": "partial"
+    },
+    {
+      "name": "Send new message",
+      "method": "POST",
+      "path": "/",
+      "body": {
+        "author": "Test User",
+        "content": "Test message",
+        "role": "Солдат",
+        "avatar": "/placeholder.svg"
+      },
+      "expectedStatus": 201,
+      "expectedBody": {
+        "message": "object"
+      },
+      "bodyMatcher": "partial"
+    }
+  ]
+}

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -6,6 +6,8 @@ import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import Icon from "@/components/ui/icon";
+
+const CHAT_API = "https://functions.poehali.dev/8043795a-df28-43ad-aee5-df60e3707260";
 
 interface Message {
   id: number;
@@ -42,18 +44,32 @@ const Index = () => {
 
   const schedule = [];
 
-  const handleSendMessage = () => {
+  useEffect(() => {
+    loadMessages();
+    const interval = setInterval(loadMessages, 3000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const loadMessages = async () => {
+    const response = await fetch(CHAT_API);
+    const data = await response.json();
+    setMessages(data.messages);
+  };
+
+  const handleSendMessage = async () => {
     if (messageInput.trim()) {
-      const newMessage: Message = {
-        id: Date.now(),
-        author: "Рядовой Новобранец",
-        avatar: "/placeholder.svg",
-        content: messageInput,
-        timestamp: new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }),
-        role: "Солдат"
-      };
-      setMessages([...messages, newMessage]);
+      await fetch(CHAT_API, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          author: "Рядовой Новобранец",
+          content: messageInput,
+          role: "Солдат",
+          avatar: "/placeholder.svg"
+        })
+      });
       setMessageInput("");
+      loadMessages();
     }
   };
 
