@@ -1,0 +1,17 @@
+INSERT INTO schedule (title, time, date, description) VALUES
+('Тренировка (GF And Tactics Practice)', '19:00', 'Вторник', 'Important Napoleonic Events'),
+('TC Event as Light Infantry', '19:00', 'Четверг', 'Important Napoleonic Events'),
+('1erArt Event as Heavy Cavalry', '19:30', 'Пятница', 'Important Napoleonic Events'),
+('19th Event as Any Cavalry', '19:00', 'Суббота', 'Important Napoleonic Events'),
+('33rd Event as Line Infantry', '19:00', 'Воскресенье', 'Important Napoleonic Events'),
+('Kasogia', '18:00', 'Суббота', 'Important Mod Events'),
+('Artillery Event (TC / 1steb)', '19:00', 'Понедельник', 'Optional Napoleonic Events'),
+('Skirmisher Event (61e, America)', '00:00', 'Суббота', 'Optional Napoleonic Events'),
+('Trench Battle Event (61e, America)', '00:00', 'Воскресенье', 'Optional Napoleonic Events'),
+('The Deluge', '20:00', 'Вторник', 'Optional Mod Events'),
+('Holdfast', '19:00', 'Среда', 'Optional Mod Events'),
+('Bear Force II', '20:00', 'Четверг', 'Optional Mod Events'),
+('Mod of Choice (MC)', '20:00', 'Пятница', 'Optional Mod Events'),
+('Mod of Choice (MC)', '20:00', 'Суббота', 'Optional Mod Events'),
+('Red & Blue (MC)', '21:00', 'Суббота', 'Optional Mod Events'),
+('Rome at War (Castilla)', '01:00', 'Воскресенье', 'Optional Mod Events');

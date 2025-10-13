@@ -1,0 +1,14 @@
+{
+  "tests": [
+    {
+      "name": "Get schedule",
+      "method": "GET",
+      "path": "/",
+      "expectedStatus": 200,
+      "expectedBody": {
+        "schedule": "array"
+      },
+      "bodyMatcher": "partial"
+    }
+  ]
+}

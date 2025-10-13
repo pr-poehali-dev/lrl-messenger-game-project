@@ -11,6 +11,7 @@ const CHAT_API = "https://functions.poehali.dev/8043795a-df28-43ad-aee5-df60e370
 const AUTH_API = "https://functions.poehali.dev/5472267d-fbd8-4c31-b0cc-0589e6b65ba2";
 const VOICE_API = "https://functions.poehali.dev/e6fbfc6f-2e2c-411f-9639-bb2f73d0fd9c";
 const MEMBERS_API = "https://functions.poehali.dev/7693979e-2693-4853-8810-416811336dc9";
+const SCHEDULE_API = "https://functions.poehali.dev/1559ce35-681a-40a8-b477-47a554a8df9f";
 
 interface User {
   id: number;
@@ -56,8 +57,7 @@ const Index = () => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [voiceChannels, setVoiceChannels] = useState<VoiceChannel[]>([]);
   const [members, setMembers] = useState<Member[]>([]);
-
-  const schedule = [];
+  const [schedule, setSchedule] = useState<any[]>([]);
 
   useEffect(() => {
     const savedUser = localStorage.getItem('lrl_user');
@@ -72,6 +72,7 @@ const Index = () => {
       loadMessages();
       loadVoiceChannels();
       loadMembers();
+      loadSchedule();
       const interval = setInterval(() => {
         loadMessages();
         loadVoiceChannels();
@@ -97,6 +98,12 @@ const Index = () => {
     const response = await fetch(MEMBERS_API);
     const data = await response.json();
     setMembers(data.members);
+  };
+
+  const loadSchedule = async () => {
+    const response = await fetch(SCHEDULE_API);
+    const data = await response.json();
+    setSchedule(data.schedule);
   };
 
   const handleAuth = async () => {
@@ -457,38 +464,113 @@ const Index = () => {
               <Icon name="Calendar" className="mr-3 text-primary" size={20} />
               <h2 className="text-lg font-semibold">Расписание тренировок и боев</h2>
             </header>
-            <div className="flex-1 p-6">
-              <div className="max-w-2xl mx-auto">
+            <ScrollArea className="flex-1 p-6">
+              <div className="max-w-4xl mx-auto">
                 {schedule.length === 0 ? (
                   <div className="flex items-center justify-center h-full text-muted-foreground">
                     <p>Нет событий в расписании</p>
                   </div>
                 ) : (
-                  <div className="space-y-3">
-                    {schedule.map((event) => (
-                      <div
-                        key={event.id}
-                        className="bg-card border border-border p-4 military-corner hover:border-accent/50 transition-all"
-                      >
-                        <div className="flex items-center gap-4">
-                          <div className="bg-accent/20 text-accent px-4 py-2 military-corner-small text-center">
-                            <div className="text-sm font-bold">{event.date}</div>
-                            <div className="text-lg font-bold">{event.time}</div>
+                  <div className="space-y-6">
+                    <div className="mb-6">
+                      <h3 className="text-lg font-bold mb-3 flex items-center gap-2">
+                        🔴 <span>Важные Napoleonic Events (Приоритет)</span>
+                      </h3>
+                      <div className="space-y-2">
+                        {schedule.filter(e => e.description === 'Important Napoleonic Events').map((event) => (
+                          <div
+                            key={event.id}
+                            className="bg-card border border-primary/30 p-3 military-corner hover:border-primary/60 transition-all"
+                          >
+                            <div className="flex items-center gap-3">
+                              <div className="bg-primary/20 text-primary px-3 py-2 military-corner-small text-center min-w-[100px]">
+                                <div className="text-xs font-bold">{event.date}</div>
+                                <div className="text-base font-bold">{event.time}</div>
+                              </div>
+                              <div className="flex-1">
+                                <h4 className="font-semibold">{event.title}</h4>
+                              </div>
+                            </div>
                           </div>
-                          <div className="flex-1">
-                            <h3 className="font-semibold text-lg">{event.title}</h3>
-                            <p className="text-sm text-muted-foreground">Обязательное участие всего состава</p>
-                          </div>
-                          <Button size="sm" variant="outline" className="military-corner-small">
-                            Подробнее
-                          </Button>
-                        </div>
+                        ))}
                       </div>
-                    ))}
+                    </div>
+
+                    <div className="mb-6">
+                      <h3 className="text-lg font-bold mb-3 flex items-center gap-2">
+                        🔴 <span>Важные Mod Events</span>
+                      </h3>
+                      <div className="space-y-2">
+                        {schedule.filter(e => e.description === 'Important Mod Events').map((event) => (
+                          <div
+                            key={event.id}
+                            className="bg-card border border-primary/30 p-3 military-corner hover:border-primary/60 transition-all"
+                          >
+                            <div className="flex items-center gap-3">
+                              <div className="bg-primary/20 text-primary px-3 py-2 military-corner-small text-center min-w-[100px]">
+                                <div className="text-xs font-bold">{event.date}</div>
+                                <div className="text-base font-bold">{event.time}</div>
+                              </div>
+                              <div className="flex-1">
+                                <h4 className="font-semibold">{event.title}</h4>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="mb-6">
+                      <h3 className="text-lg font-bold mb-3 flex items-center gap-2">
+                        🟡 <span>Опциональные Napoleonic Events</span>
+                      </h3>
+                      <div className="space-y-2">
+                        {schedule.filter(e => e.description === 'Optional Napoleonic Events').map((event) => (
+                          <div
+                            key={event.id}
+                            className="bg-card border border-border p-3 military-corner hover:border-accent/50 transition-all"
+                          >
+                            <div className="flex items-center gap-3">
+                              <div className="bg-accent/20 text-accent px-3 py-2 military-corner-small text-center min-w-[100px]">
+                                <div className="text-xs font-bold">{event.date}</div>
+                                <div className="text-base font-bold">{event.time}</div>
+                              </div>
+                              <div className="flex-1">
+                                <h4 className="font-semibold text-sm">{event.title}</h4>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div>
+                      <h3 className="text-lg font-bold mb-3 flex items-center gap-2">
+                        🟡 <span>Опциональные Mod Events</span>
+                      </h3>
+                      <div className="space-y-2">
+                        {schedule.filter(e => e.description === 'Optional Mod Events').map((event) => (
+                          <div
+                            key={event.id}
+                            className="bg-card border border-border p-3 military-corner hover:border-accent/50 transition-all"
+                          >
+                            <div className="flex items-center gap-3">
+                              <div className="bg-accent/20 text-accent px-3 py-2 military-corner-small text-center min-w-[100px]">
+                                <div className="text-xs font-bold">{event.date}</div>
+                                <div className="text-base font-bold">{event.time}</div>
+                              </div>
+                              <div className="flex-1">
+                                <h4 className="font-semibold text-sm">{event.title}</h4>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
                   </div>
                 )}
               </div>
-            </div>
+            </ScrollArea>
           </>
         )}
       </main>
