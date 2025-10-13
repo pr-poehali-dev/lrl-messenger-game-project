@@ -35,53 +35,13 @@ const Index = () => {
   const [activeSection, setActiveSection] = useState<"chat" | "voice" | "members" | "schedule">("chat");
   const [messageInput, setMessageInput] = useState("");
 
-  const messages: Message[] = [
-    {
-      id: 1,
-      author: "Полковник Иванов",
-      avatar: "/placeholder.svg",
-      content: "Завтра в 19:00 общий сбор. Явка обязательна!",
-      timestamp: "14:30",
-      role: "Полковник"
-    },
-    {
-      id: 2,
-      author: "Капитан Петров",
-      avatar: "/placeholder.svg",
-      content: "Понял, буду на месте.",
-      timestamp: "14:32",
-      role: "Капитан"
-    },
-    {
-      id: 3,
-      author: "Рядовой Сидоров",
-      avatar: "/placeholder.svg",
-      content: "Какая форма одежды?",
-      timestamp: "14:35",
-      role: "Рядовой"
-    }
-  ];
+  const messages: Message[] = [];
 
-  const voiceChannels: VoiceChannel[] = [
-    { id: 1, name: "Штабная комната", users: 3, active: true },
-    { id: 2, name: "Тренировочный полигон", users: 0 },
-    { id: 3, name: "Боевой канал", users: 5 },
-    { id: 4, name: "Отдых офицеров", users: 2 }
-  ];
+  const voiceChannels: VoiceChannel[] = [];
 
-  const members: Member[] = [
-    { id: 1, name: "Полковник Иванов", role: "Командир", status: "online", avatar: "/placeholder.svg" },
-    { id: 2, name: "Капитан Петров", role: "Заместитель", status: "online", avatar: "/placeholder.svg" },
-    { id: 3, name: "Лейтенант Смирнов", role: "Офицер", status: "busy", avatar: "/placeholder.svg" },
-    { id: 4, name: "Рядовой Сидоров", role: "Солдат", status: "online", avatar: "/placeholder.svg" },
-    { id: 5, name: "Рядовой Кузнецов", role: "Солдат", status: "offline", avatar: "/placeholder.svg" }
-  ];
+  const members: Member[] = [];
 
-  const schedule = [
-    { id: 1, title: "Общий сбор", time: "19:00", date: "15 окт" },
-    { id: 2, title: "Тренировочный бой", time: "20:00", date: "16 окт" },
-    { id: 3, title: "Линейное сражение", time: "21:00", date: "17 окт" }
-  ];
+  const schedule = [];
 
   const handleSendMessage = () => {
     if (messageInput.trim()) {
@@ -184,26 +144,32 @@ const Index = () => {
 
             <ScrollArea className="flex-1 p-4">
               <div className="space-y-4 max-w-4xl mx-auto">
-                {messages.map((msg) => (
-                  <div key={msg.id} className="flex gap-3 hover:bg-muted/50 p-2 rounded transition-colors">
-                    <Avatar className="h-10 w-10 border border-border">
-                      <AvatarImage src={msg.avatar} />
-                      <AvatarFallback>{msg.author[0]}</AvatarFallback>
-                    </Avatar>
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className="font-semibold text-foreground">{msg.author}</span>
-                        {msg.role && (
-                          <Badge variant="secondary" className="text-xs military-corner-small bg-primary/20 text-primary border-primary/30">
-                            {msg.role}
-                          </Badge>
-                        )}
-                        <span className="text-xs text-muted-foreground">{msg.timestamp}</span>
-                      </div>
-                      <p className="text-sm text-foreground/90">{msg.content}</p>
-                    </div>
+                {messages.length === 0 ? (
+                  <div className="flex items-center justify-center h-full text-muted-foreground">
+                    <p>Нет сообщений</p>
                   </div>
-                ))}
+                ) : (
+                  messages.map((msg) => (
+                    <div key={msg.id} className="flex gap-3 hover:bg-muted/50 p-2 rounded transition-colors">
+                      <Avatar className="h-10 w-10 border border-border">
+                        <AvatarImage src={msg.avatar} />
+                        <AvatarFallback>{msg.author[0]}</AvatarFallback>
+                      </Avatar>
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="font-semibold text-foreground">{msg.author}</span>
+                          {msg.role && (
+                            <Badge variant="secondary" className="text-xs military-corner-small bg-primary/20 text-primary border-primary/30">
+                              {msg.role}
+                            </Badge>
+                          )}
+                          <span className="text-xs text-muted-foreground">{msg.timestamp}</span>
+                        </div>
+                        <p className="text-sm text-foreground/90">{msg.content}</p>
+                      </div>
+                    </div>
+                  ))
+                )}
               </div>
             </ScrollArea>
 
@@ -234,30 +200,38 @@ const Index = () => {
               <h2 className="text-lg font-semibold">Голосовые каналы</h2>
             </header>
             <div className="flex-1 p-6">
-              <div className="max-w-2xl mx-auto space-y-3">
-                {voiceChannels.map((channel) => (
-                  <div
-                    key={channel.id}
-                    className="bg-card border border-border p-4 military-corner hover:border-primary/50 transition-all cursor-pointer"
-                  >
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className={`w-10 h-10 rounded-full flex items-center justify-center ${channel.active ? 'bg-primary' : 'bg-muted'}`}>
-                          <Icon name="Volume2" size={18} className={channel.active ? 'text-primary-foreground' : 'text-muted-foreground'} />
-                        </div>
-                        <div>
-                          <h3 className="font-semibold">{channel.name}</h3>
-                          <p className="text-sm text-muted-foreground">
-                            {channel.users === 0 ? "Нет участников" : `${channel.users} участн.`}
-                          </p>
+              <div className="max-w-2xl mx-auto">
+                {voiceChannels.length === 0 ? (
+                  <div className="flex items-center justify-center h-full text-muted-foreground">
+                    <p>Нет голосовых каналов</p>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {voiceChannels.map((channel) => (
+                      <div
+                        key={channel.id}
+                        className="bg-card border border-border p-4 military-corner hover:border-primary/50 transition-all cursor-pointer"
+                      >
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <div className={`w-10 h-10 rounded-full flex items-center justify-center ${channel.active ? 'bg-primary' : 'bg-muted'}`}>
+                              <Icon name="Volume2" size={18} className={channel.active ? 'text-primary-foreground' : 'text-muted-foreground'} />
+                            </div>
+                            <div>
+                              <h3 className="font-semibold">{channel.name}</h3>
+                              <p className="text-sm text-muted-foreground">
+                                {channel.users === 0 ? "Нет участников" : `${channel.users} участн.`}
+                              </p>
+                            </div>
+                          </div>
+                          <Button size="sm" variant={channel.active ? "default" : "secondary"} className="military-corner-small">
+                            {channel.active ? "Подключен" : "Подключиться"}
+                          </Button>
                         </div>
                       </div>
-                      <Button size="sm" variant={channel.active ? "default" : "secondary"} className="military-corner-small">
-                        {channel.active ? "Подключен" : "Подключиться"}
-                      </Button>
-                    </div>
+                    ))}
                   </div>
-                ))}
+                )}
               </div>
             </div>
           </>
@@ -270,36 +244,44 @@ const Index = () => {
               <h2 className="text-lg font-semibold">Участники полка</h2>
             </header>
             <div className="flex-1 p-6">
-              <div className="max-w-3xl mx-auto space-y-2">
-                {members.map((member) => (
-                  <div
-                    key={member.id}
-                    className="bg-card border border-border p-3 flex items-center gap-4 military-corner hover:border-primary/30 transition-all"
-                  >
-                    <div className="relative">
-                      <Avatar className="h-12 w-12 border-2 border-border">
-                        <AvatarImage src={member.avatar} />
-                        <AvatarFallback>{member.name[0]}</AvatarFallback>
-                      </Avatar>
-                      <div
-                        className={`absolute -bottom-1 -right-1 w-4 h-4 rounded-full border-2 border-card ${
-                          member.status === "online"
-                            ? "bg-green-500"
-                            : member.status === "busy"
-                            ? "bg-yellow-500"
-                            : "bg-gray-500"
-                        }`}
-                      />
-                    </div>
-                    <div className="flex-1">
-                      <h3 className="font-semibold">{member.name}</h3>
-                      <p className="text-sm text-muted-foreground">{member.role}</p>
-                    </div>
-                    <Badge variant="outline" className="military-corner-small">
-                      {member.status === "online" ? "В сети" : member.status === "busy" ? "Занят" : "Не в сети"}
-                    </Badge>
+              <div className="max-w-3xl mx-auto">
+                {members.length === 0 ? (
+                  <div className="flex items-center justify-center h-full text-muted-foreground">
+                    <p>Нет участников</p>
                   </div>
-                ))}
+                ) : (
+                  <div className="space-y-2">
+                    {members.map((member) => (
+                      <div
+                        key={member.id}
+                        className="bg-card border border-border p-3 flex items-center gap-4 military-corner hover:border-primary/30 transition-all"
+                      >
+                        <div className="relative">
+                          <Avatar className="h-12 w-12 border-2 border-border">
+                            <AvatarImage src={member.avatar} />
+                            <AvatarFallback>{member.name[0]}</AvatarFallback>
+                          </Avatar>
+                          <div
+                            className={`absolute -bottom-1 -right-1 w-4 h-4 rounded-full border-2 border-card ${
+                              member.status === "online"
+                                ? "bg-green-500"
+                                : member.status === "busy"
+                                ? "bg-yellow-500"
+                                : "bg-gray-500"
+                            }`}
+                          />
+                        </div>
+                        <div className="flex-1">
+                          <h3 className="font-semibold">{member.name}</h3>
+                          <p className="text-sm text-muted-foreground">{member.role}</p>
+                        </div>
+                        <Badge variant="outline" className="military-corner-small">
+                          {member.status === "online" ? "В сети" : member.status === "busy" ? "Занят" : "Не в сети"}
+                        </Badge>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
           </>
@@ -312,27 +294,35 @@ const Index = () => {
               <h2 className="text-lg font-semibold">Расписание тренировок и боев</h2>
             </header>
             <div className="flex-1 p-6">
-              <div className="max-w-2xl mx-auto space-y-3">
-                {schedule.map((event) => (
-                  <div
-                    key={event.id}
-                    className="bg-card border border-border p-4 military-corner hover:border-accent/50 transition-all"
-                  >
-                    <div className="flex items-center gap-4">
-                      <div className="bg-accent/20 text-accent px-4 py-2 military-corner-small text-center">
-                        <div className="text-sm font-bold">{event.date}</div>
-                        <div className="text-lg font-bold">{event.time}</div>
-                      </div>
-                      <div className="flex-1">
-                        <h3 className="font-semibold text-lg">{event.title}</h3>
-                        <p className="text-sm text-muted-foreground">Обязательное участие всего состава</p>
-                      </div>
-                      <Button size="sm" variant="outline" className="military-corner-small">
-                        Подробнее
-                      </Button>
-                    </div>
+              <div className="max-w-2xl mx-auto">
+                {schedule.length === 0 ? (
+                  <div className="flex items-center justify-center h-full text-muted-foreground">
+                    <p>Нет событий в расписании</p>
                   </div>
-                ))}
+                ) : (
+                  <div className="space-y-3">
+                    {schedule.map((event) => (
+                      <div
+                        key={event.id}
+                        className="bg-card border border-border p-4 military-corner hover:border-accent/50 transition-all"
+                      >
+                        <div className="flex items-center gap-4">
+                          <div className="bg-accent/20 text-accent px-4 py-2 military-corner-small text-center">
+                            <div className="text-sm font-bold">{event.date}</div>
+                            <div className="text-lg font-bold">{event.time}</div>
+                          </div>
+                          <div className="flex-1">
+                            <h3 className="font-semibold text-lg">{event.title}</h3>
+                            <p className="text-sm text-muted-foreground">Обязательное участие всего состава</p>
+                          </div>
+                          <Button size="sm" variant="outline" className="military-corner-small">
+                            Подробнее
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
           </>
