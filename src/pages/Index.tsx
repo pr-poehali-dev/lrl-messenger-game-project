@@ -34,8 +34,7 @@ interface Member {
 const Index = () => {
   const [activeSection, setActiveSection] = useState<"chat" | "voice" | "members" | "schedule">("chat");
   const [messageInput, setMessageInput] = useState("");
-
-  const messages: Message[] = [];
+  const [messages, setMessages] = useState<Message[]>([]);
 
   const voiceChannels: VoiceChannel[] = [];
 
@@ -45,6 +44,15 @@ const Index = () => {
 
   const handleSendMessage = () => {
     if (messageInput.trim()) {
+      const newMessage: Message = {
+        id: Date.now(),
+        author: "Рядовой Новобранец",
+        avatar: "/placeholder.svg",
+        content: messageInput,
+        timestamp: new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }),
+        role: "Солдат"
+      };
+      setMessages([...messages, newMessage]);
       setMessageInput("");
     }
   };
