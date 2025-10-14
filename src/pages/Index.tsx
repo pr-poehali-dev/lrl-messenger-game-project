@@ -62,6 +62,7 @@ const Index = () => {
   const [schedule, setSchedule] = useState<any[]>([]);
   const [connectedChannel, setConnectedChannel] = useState<number | null>(null);
   const [isMicMuted, setIsMicMuted] = useState(false);
+  const [speakingUsers, setSpeakingUsers] = useState<Set<string>>(new Set());
   const voiceChatRef = useRef<VoiceChat | null>(null);
 
   useEffect(() => {
@@ -174,6 +175,22 @@ const Index = () => {
           },
           onPeerLeave: (peerId) => {
             toast.info('Участник покинул канал');
+            setSpeakingUsers(prev => {
+              const next = new Set(prev);
+              next.delete(peerId);
+              return next;
+            });
+          },
+          onSpeaking: (peerId, isSpeaking) => {
+            setSpeakingUsers(prev => {
+              const next = new Set(prev);
+              if (isSpeaking) {
+                next.add(peerId);
+              } else {
+                next.delete(peerId);
+              }
+              return next;
+            });
           },
           onError: (error) => {
             toast.error(`Ошибка: ${error.message}`);
@@ -450,8 +467,11 @@ const Index = () => {
                       >
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-3">
-                            <div className={`w-10 h-10 rounded-full flex items-center justify-center ${channel.active ? 'bg-primary' : 'bg-muted'}`}>
+                            <div className={`relative w-10 h-10 rounded-full flex items-center justify-center ${channel.active ? 'bg-primary' : 'bg-muted'}`}>
                               <Icon name="Volume2" size={18} className={channel.active ? 'text-primary-foreground' : 'text-muted-foreground'} />
+                              {channel.active && speakingUsers.size > 0 && (
+                                <div className="absolute -inset-1 rounded-full border-2 border-green-500 animate-pulse"></div>
+                              )}
                             </div>
                             <div>
                               <h3 className="font-semibold">{channel.name}</h3>
@@ -469,18 +489,18 @@ const Index = () => {
                                   e.stopPropagation();
                                   toggleMicrophone();
                                 }}
-                                className="military-corner-small"
+                                className={`military-corner-small ${isMicMuted ? 'text-destructive' : ''}`}
                               >
                                 <Icon name={isMicMuted ? "MicOff" : "Mic"} size={16} />
                               </Button>
                             )}
                             <Button 
                               size="sm" 
-                              variant={channel.active ? "default" : "secondary"} 
+                              variant={channel.active ? "destructive" : "secondary"} 
                               className="military-corner-small"
                               onClick={() => handleVoiceChannelToggle(channel.id)}
                             >
-                              {channel.active ? "Отключиться" : "Подключиться"}
+                              {channel.active ? "Выйти" : "Подключиться"}
                             </Button>
                           </div>
                         </div>

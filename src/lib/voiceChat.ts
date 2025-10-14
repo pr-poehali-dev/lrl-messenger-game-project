@@ -7,6 +7,7 @@ export interface VoiceChatOptions {
   onPeerJoin?: (peerId: string, name: string) => void;
   onPeerLeave?: (peerId: string) => void;
   onError?: (error: Error) => void;
+  onSpeaking?: (peerId: string, isSpeaking: boolean) => void;
 }
 
 export class VoiceChat {
@@ -19,8 +20,12 @@ export class VoiceChat {
   private onPeerJoin?: (peerId: string, name: string) => void;
   private onPeerLeave?: (peerId: string) => void;
   private onError?: (error: Error) => void;
+  private onSpeaking?: (peerId: string, isSpeaking: boolean) => void;
   private pollInterval: number | null = null;
   private connected: boolean = false;
+  private audioContext: AudioContext | null = null;
+  private analyser: AnalyserNode | null = null;
+  private speakingCheckInterval: number | null = null;
 
   constructor(options: VoiceChatOptions) {
     this.channelId = options.channelId;
@@ -30,6 +35,7 @@ export class VoiceChat {
     this.onPeerJoin = options.onPeerJoin;
     this.onPeerLeave = options.onPeerLeave;
     this.onError = options.onError;
+    this.onSpeaking = options.onSpeaking;
   }
 
   async connect(): Promise<void> {
@@ -60,10 +66,36 @@ export class VoiceChat {
 
       this.connected = true;
       this.startPolling();
+      this.startSpeakingDetection();
     } catch (error) {
       this.onError?.(error as Error);
       throw error;
     }
+  }
+
+  private startSpeakingDetection(): void {
+    if (!this.localStream) return;
+
+    this.audioContext = new AudioContext();
+    const source = this.audioContext.createMediaStreamSource(this.localStream);
+    this.analyser = this.audioContext.createAnalyser();
+    this.analyser.fftSize = 512;
+    source.connect(this.analyser);
+
+    const bufferLength = this.analyser.frequencyBinCount;
+    const dataArray = new Uint8Array(bufferLength);
+
+    const checkSpeaking = () => {
+      if (!this.analyser || !this.connected) return;
+
+      this.analyser.getByteFrequencyData(dataArray);
+      const average = dataArray.reduce((a, b) => a + b) / bufferLength;
+      const isSpeaking = average > 15;
+      
+      this.onSpeaking?.(this.myPeerId, isSpeaking);
+    };
+
+    this.speakingCheckInterval = window.setInterval(checkSpeaking, 100);
   }
 
   private async startPolling(): Promise<void> {
@@ -154,6 +186,16 @@ export class VoiceChat {
     if (this.pollInterval) {
       clearInterval(this.pollInterval);
       this.pollInterval = null;
+    }
+
+    if (this.speakingCheckInterval) {
+      clearInterval(this.speakingCheckInterval);
+      this.speakingCheckInterval = null;
+    }
+
+    if (this.audioContext) {
+      this.audioContext.close();
+      this.audioContext = null;
     }
 
     for (const [peerId, peer] of this.peers) {
