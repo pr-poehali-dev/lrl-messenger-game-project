@@ -33,6 +33,14 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             action = event.get('queryStringParameters', {}).get('action', 'list')
             
             if action == 'list':
+                cur.execute('''
+                    UPDATE voice_connections 
+                    SET disconnected_at = NOW() 
+                    WHERE disconnected_at IS NULL 
+                    AND connected_at < NOW() - INTERVAL '5 minutes'
+                ''')
+                conn.commit()
+                
                 cur.execute('SELECT id, name FROM voice_channels ORDER BY id')
                 channels = cur.fetchall()
                 

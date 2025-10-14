@@ -229,7 +229,27 @@ const Index = () => {
   };
 
   useEffect(() => {
+    const handleBeforeUnload = async () => {
+      if (voiceChatRef.current) {
+        await voiceChatRef.current.disconnect();
+      }
+    };
+
+    const handleUnload = async () => {
+      if (voiceChatRef.current) {
+        await voiceChatRef.current.disconnect();
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    window.addEventListener('unload', handleUnload);
+    window.addEventListener('pagehide', handleUnload);
+
     return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      window.removeEventListener('unload', handleUnload);
+      window.removeEventListener('pagehide', handleUnload);
+      
       if (voiceChatRef.current) {
         voiceChatRef.current.disconnect();
       }
