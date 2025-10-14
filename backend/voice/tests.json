@@ -1,12 +1,28 @@
 {
   "tests": [
     {
-      "name": "Get voice channels",
+      "name": "Get voice channels list",
       "method": "GET",
-      "path": "/",
+      "path": "/?action=list",
       "expectedStatus": 200,
       "expectedBody": {
         "channels": "array"
+      },
+      "bodyMatcher": "partial"
+    },
+    {
+      "name": "Join voice channel",
+      "method": "POST",
+      "path": "/",
+      "body": {
+        "action": "join",
+        "channel_id": 1,
+        "user_id": 1,
+        "peer_id": "test-peer-123"
+      },
+      "expectedStatus": 200,
+      "expectedBody": {
+        "success": true
       },
       "bodyMatcher": "partial"
     }

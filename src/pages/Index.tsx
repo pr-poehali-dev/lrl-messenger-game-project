@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -6,6 +6,8 @@ import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import Icon from "@/components/ui/icon";
+import { VoiceChat } from "@/lib/voiceChat";
+import { toast } from "sonner";
 
 const CHAT_API = "https://functions.poehali.dev/8043795a-df28-43ad-aee5-df60e3707260";
 const AUTH_API = "https://functions.poehali.dev/5472267d-fbd8-4c31-b0cc-0589e6b65ba2";
@@ -58,6 +60,9 @@ const Index = () => {
   const [voiceChannels, setVoiceChannels] = useState<VoiceChannel[]>([]);
   const [members, setMembers] = useState<Member[]>([]);
   const [schedule, setSchedule] = useState<any[]>([]);
+  const [connectedChannel, setConnectedChannel] = useState<number | null>(null);
+  const [isMicMuted, setIsMicMuted] = useState(false);
+  const voiceChatRef = useRef<VoiceChat | null>(null);
 
   useEffect(() => {
     const savedUser = localStorage.getItem('lrl_user');
@@ -89,9 +94,12 @@ const Index = () => {
   };
 
   const loadVoiceChannels = async () => {
-    const response = await fetch(VOICE_API);
+    const response = await fetch(`${VOICE_API}?action=list`);
     const data = await response.json();
-    setVoiceChannels(data.channels);
+    setVoiceChannels(data.channels.map((ch: any) => ({
+      ...ch,
+      active: ch.id === connectedChannel
+    })));
   };
 
   const loadMembers = async () => {
@@ -142,6 +150,63 @@ const Index = () => {
     localStorage.removeItem('lrl_token');
     setShowAuth(true);
   };
+
+  const handleVoiceChannelToggle = async (channelId: number) => {
+    if (connectedChannel === channelId) {
+      if (voiceChatRef.current) {
+        await voiceChatRef.current.disconnect();
+        voiceChatRef.current = null;
+      }
+      setConnectedChannel(null);
+      toast.success('Отключено от голосового канала');
+    } else {
+      try {
+        if (voiceChatRef.current) {
+          await voiceChatRef.current.disconnect();
+        }
+
+        const voiceChat = new VoiceChat({
+          channelId,
+          userId: user!.id,
+          apiUrl: VOICE_API,
+          onPeerJoin: (peerId, name) => {
+            toast.info(`${name} присоединился к каналу`);
+          },
+          onPeerLeave: (peerId) => {
+            toast.info('Участник покинул канал');
+          },
+          onError: (error) => {
+            toast.error(`Ошибка: ${error.message}`);
+          }
+        });
+
+        await voiceChat.connect();
+        voiceChatRef.current = voiceChat;
+        setConnectedChannel(channelId);
+        toast.success('Подключено к голосовому каналу');
+      } catch (error) {
+        toast.error('Не удалось подключиться к голосовому каналу');
+        console.error(error);
+      }
+    }
+  };
+
+  const toggleMicrophone = () => {
+    if (voiceChatRef.current) {
+      const newMutedState = !isMicMuted;
+      voiceChatRef.current.setMicrophoneEnabled(!newMutedState);
+      setIsMicMuted(newMutedState);
+      toast.info(newMutedState ? 'Микрофон выключен' : 'Микрофон включен');
+    }
+  };
+
+  useEffect(() => {
+    return () => {
+      if (voiceChatRef.current) {
+        voiceChatRef.current.disconnect();
+      }
+    };
+  }, []);
 
   const handleSendMessage = async () => {
     if (messageInput.trim() && user) {
@@ -395,9 +460,29 @@ const Index = () => {
                               </p>
                             </div>
                           </div>
-                          <Button size="sm" variant={channel.active ? "default" : "secondary"} className="military-corner-small">
-                            {channel.active ? "Подключен" : "Подключиться"}
-                          </Button>
+                          <div className="flex items-center gap-2">
+                            {channel.active && (
+                              <Button 
+                                size="sm" 
+                                variant="ghost" 
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  toggleMicrophone();
+                                }}
+                                className="military-corner-small"
+                              >
+                                <Icon name={isMicMuted ? "MicOff" : "Mic"} size={16} />
+                              </Button>
+                            )}
+                            <Button 
+                              size="sm" 
+                              variant={channel.active ? "default" : "secondary"} 
+                              className="military-corner-small"
+                              onClick={() => handleVoiceChannelToggle(channel.id)}
+                            >
+                              {channel.active ? "Отключиться" : "Подключиться"}
+                            </Button>
+                          </div>
                         </div>
                       </div>
                     ))}
