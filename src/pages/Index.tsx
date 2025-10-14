@@ -63,6 +63,7 @@ const Index = () => {
   const [connectedChannel, setConnectedChannel] = useState<number | null>(null);
   const [isMicMuted, setIsMicMuted] = useState(false);
   const [speakingUsers, setSpeakingUsers] = useState<Set<string>>(new Set());
+  const [voiceChannelPeers, setVoiceChannelPeers] = useState<any[]>([]);
   const voiceChatRef = useRef<VoiceChat | null>(null);
 
   useEffect(() => {
@@ -83,10 +84,13 @@ const Index = () => {
         loadMessages();
         loadVoiceChannels();
         loadMembers();
+        if (connectedChannel) {
+          loadVoiceChannelPeers(connectedChannel);
+        }
       }, 3000);
       return () => clearInterval(interval);
     }
-  }, [user]);
+  }, [user, connectedChannel]);
 
   const loadMessages = async () => {
     const response = await fetch(CHAT_API);
@@ -113,6 +117,12 @@ const Index = () => {
     const response = await fetch(SCHEDULE_API);
     const data = await response.json();
     setSchedule(data.schedule);
+  };
+
+  const loadVoiceChannelPeers = async (channelId: number) => {
+    const response = await fetch(`${VOICE_API}?action=peers&channel_id=${channelId}`);
+    const data = await response.json();
+    setVoiceChannelPeers(data.peers || []);
   };
 
   const handleAuth = async () => {
@@ -200,6 +210,7 @@ const Index = () => {
         await voiceChat.connect();
         voiceChatRef.current = voiceChat;
         setConnectedChannel(channelId);
+        await loadVoiceChannelPeers(channelId);
         toast.success('Подключено к голосовому каналу');
       } catch (error) {
         toast.error('Не удалось подключиться к голосовому каналу');
@@ -465,44 +476,84 @@ const Index = () => {
                         key={channel.id}
                         className="bg-card border border-border p-4 military-corner hover:border-primary/50 transition-all cursor-pointer"
                       >
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-3">
-                            <div className={`relative w-10 h-10 rounded-full flex items-center justify-center ${channel.active ? 'bg-primary' : 'bg-muted'}`}>
-                              <Icon name="Volume2" size={18} className={channel.active ? 'text-primary-foreground' : 'text-muted-foreground'} />
-                              {channel.active && speakingUsers.size > 0 && (
-                                <div className="absolute -inset-1 rounded-full border-2 border-green-500 animate-pulse"></div>
+                        <div>
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                              <div className={`relative w-10 h-10 rounded-full flex items-center justify-center ${channel.active ? 'bg-primary' : 'bg-muted'}`}>
+                                <Icon name="Volume2" size={18} className={channel.active ? 'text-primary-foreground' : 'text-muted-foreground'} />
+                                {channel.active && speakingUsers.size > 0 && (
+                                  <div className="absolute -inset-1 rounded-full border-2 border-green-500 animate-pulse"></div>
+                                )}
+                              </div>
+                              <div>
+                                <h3 className="font-semibold">{channel.name}</h3>
+                                <p className="text-sm text-muted-foreground">
+                                  {channel.users === 0 ? "Нет участников" : `${channel.users} участн.`}
+                                </p>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              {channel.active && (
+                                <Button 
+                                  size="sm" 
+                                  variant="ghost" 
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    toggleMicrophone();
+                                  }}
+                                  className={`military-corner-small ${isMicMuted ? 'text-destructive' : ''}`}
+                                >
+                                  <Icon name={isMicMuted ? "MicOff" : "Mic"} size={16} />
+                                </Button>
                               )}
-                            </div>
-                            <div>
-                              <h3 className="font-semibold">{channel.name}</h3>
-                              <p className="text-sm text-muted-foreground">
-                                {channel.users === 0 ? "Нет участников" : `${channel.users} участн.`}
-                              </p>
-                            </div>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            {channel.active && (
                               <Button 
                                 size="sm" 
-                                variant="ghost" 
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  toggleMicrophone();
-                                }}
-                                className={`military-corner-small ${isMicMuted ? 'text-destructive' : ''}`}
+                                variant={channel.active ? "destructive" : "secondary"} 
+                                className="military-corner-small"
+                                onClick={() => handleVoiceChannelToggle(channel.id)}
                               >
-                                <Icon name={isMicMuted ? "MicOff" : "Mic"} size={16} />
+                                {channel.active ? "Выйти" : "Подключиться"}
                               </Button>
-                            )}
-                            <Button 
-                              size="sm" 
-                              variant={channel.active ? "destructive" : "secondary"} 
-                              className="military-corner-small"
-                              onClick={() => handleVoiceChannelToggle(channel.id)}
-                            >
-                              {channel.active ? "Выйти" : "Подключиться"}
-                            </Button>
+                            </div>
                           </div>
+                          
+                          {channel.active && voiceChannelPeers.length > 0 && (
+                            <div className="mt-3 pt-3 border-t border-border">
+                              <p className="text-xs text-muted-foreground mb-2">В канале:</p>
+                              <div className="space-y-2">
+                                {voiceChannelPeers.map((peer) => (
+                                  <div key={peer.peer_id} className="flex items-center gap-2">
+                                    <Avatar className="h-6 w-6 border border-border">
+                                      <AvatarImage src={peer.avatar} />
+                                      <AvatarFallback className="text-xs">{peer.name[0]}</AvatarFallback>
+                                    </Avatar>
+                                    <span className="text-sm">{peer.name}</span>
+                                    {speakingUsers.has(peer.peer_id) && (
+                                      <div className="flex items-center gap-1 ml-auto">
+                                        <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></div>
+                                        <div className="w-1.5 h-2 bg-green-500 rounded-full animate-pulse animation-delay-100"></div>
+                                        <div className="w-1.5 h-3 bg-green-500 rounded-full animate-pulse animation-delay-200"></div>
+                                      </div>
+                                    )}
+                                  </div>
+                                ))}
+                                <div className="flex items-center gap-2 bg-primary/10 p-2 rounded military-corner-small">
+                                  <Avatar className="h-6 w-6 border border-primary">
+                                    <AvatarImage src={user?.avatar} />
+                                    <AvatarFallback className="text-xs">{user?.display_name[0]}</AvatarFallback>
+                                  </Avatar>
+                                  <span className="text-sm font-semibold">{user?.display_name} (вы)</span>
+                                  {speakingUsers.has(voiceChatRef.current?.getConnectedPeers()[0] || '') && (
+                                    <div className="flex items-center gap-1 ml-auto">
+                                      <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></div>
+                                      <div className="w-1.5 h-2 bg-green-500 rounded-full animate-pulse animation-delay-100"></div>
+                                      <div className="w-1.5 h-3 bg-green-500 rounded-full animate-pulse animation-delay-200"></div>
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          )}
                         </div>
                       </div>
                     ))}
