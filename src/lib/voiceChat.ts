@@ -4,6 +4,7 @@ export interface VoiceChatOptions {
   channelId: number;
   userId: number;
   apiUrl: string;
+  userRole?: string;
   onPeerJoin?: (peerId: string, name: string) => void;
   onPeerLeave?: (peerId: string) => void;
   onError?: (error: Error) => void;
@@ -15,7 +16,9 @@ export class VoiceChat {
   private userId: number;
   private apiUrl: string;
   private myPeerId: string;
+  private userRole: string;
   private peers: Map<string, SimplePeer.Instance> = new Map();
+  private peerGains: Map<string, GainNode> = new Map();
   private localStream: MediaStream | null = null;
   private onPeerJoin?: (peerId: string, name: string) => void;
   private onPeerLeave?: (peerId: string) => void;
@@ -31,6 +34,7 @@ export class VoiceChat {
     this.channelId = options.channelId;
     this.userId = options.userId;
     this.apiUrl = options.apiUrl;
+    this.userRole = options.userRole || 'Солдат';
     this.myPeerId = `peer-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
     this.onPeerJoin = options.onPeerJoin;
     this.onPeerLeave = options.onPeerLeave;
@@ -158,9 +162,28 @@ export class VoiceChat {
     });
 
     peer.on('stream', (remoteStream) => {
+      if (!this.audioContext) {
+        this.audioContext = new AudioContext();
+      }
+
       const audio = new Audio();
       audio.srcObject = remoteStream;
+      audio.volume = 0;
       audio.play();
+
+      const source = this.audioContext.createMediaStreamSource(remoteStream);
+      const gainNode = this.audioContext.createGain();
+      
+      if (this.userRole === 'Офицер') {
+        gainNode.gain.value = 1.0;
+      } else {
+        gainNode.gain.value = 0.7;
+      }
+      
+      source.connect(gainNode);
+      gainNode.connect(this.audioContext.destination);
+      
+      this.peerGains.set(peerId, gainNode);
     });
 
     peer.on('error', (err) => {
@@ -176,8 +199,15 @@ export class VoiceChat {
     if (peer) {
       peer.destroy();
       this.peers.delete(peerId);
-      this.onPeerLeave?.(peerId);
     }
+    
+    const gainNode = this.peerGains.get(peerId);
+    if (gainNode) {
+      gainNode.disconnect();
+      this.peerGains.delete(peerId);
+    }
+    
+    this.onPeerLeave?.(peerId);
   }
 
   async disconnect(): Promise<void> {

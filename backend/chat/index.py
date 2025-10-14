@@ -6,7 +6,7 @@ from psycopg2.extras import RealDictCursor
 
 def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     '''
-    Business: Handle chat messages - get history and send new messages
+    Business: Handle chat messages - get history, send new messages, delete messages (officers only)
     Args: event with httpMethod, body, queryStringParameters
     Returns: HTTP response with messages list or success status
     '''
@@ -17,8 +17,8 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             'statusCode': 200,
             'headers': {
                 'Access-Control-Allow-Origin': '*',
-                'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-                'Access-Control-Allow-Headers': 'Content-Type, X-User-Id',
+                'Access-Control-Allow-Methods': 'GET, POST, DELETE, OPTIONS',
+                'Access-Control-Allow-Headers': 'Content-Type, X-User-Id, X-User-Role',
                 'Access-Control-Max-Age': '86400'
             },
             'body': ''
@@ -76,6 +76,43 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             },
             'isBase64Encoded': False,
             'body': json.dumps({'message': new_message})
+        }
+    
+    if method == 'DELETE':
+        headers = event.get('headers', {})
+        user_role = headers.get('x-user-role', headers.get('X-User-Role', ''))
+        
+        if user_role != 'Офицер':
+            return {
+                'statusCode': 403,
+                'headers': {'Access-Control-Allow-Origin': '*'},
+                'body': json.dumps({'error': 'Only officers can delete messages'})
+            }
+        
+        params = event.get('queryStringParameters', {})
+        message_id = params.get('message_id')
+        
+        if not message_id:
+            return {
+                'statusCode': 400,
+                'headers': {'Access-Control-Allow-Origin': '*'},
+                'body': json.dumps({'error': 'message_id required'})
+            }
+        
+        with conn.cursor() as cur:
+            cur.execute('DELETE FROM messages WHERE id = %s', (message_id,))
+            conn.commit()
+        
+        conn.close()
+        
+        return {
+            'statusCode': 200,
+            'headers': {
+                'Content-Type': 'application/json',
+                'Access-Control-Allow-Origin': '*'
+            },
+            'isBase64Encoded': False,
+            'body': json.dumps({'success': True})
         }
     
     return {

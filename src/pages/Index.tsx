@@ -8,6 +8,7 @@ import { Separator } from "@/components/ui/separator";
 import Icon from "@/components/ui/icon";
 import { VoiceChat } from "@/lib/voiceChat";
 import { toast } from "sonner";
+import { playJoinSound, playLeaveSound } from "@/lib/sounds";
 
 const CHAT_API = "https://functions.poehali.dev/8043795a-df28-43ad-aee5-df60e3707260";
 const AUTH_API = "https://functions.poehali.dev/5472267d-fbd8-4c31-b0cc-0589e6b65ba2";
@@ -180,10 +181,13 @@ const Index = () => {
           channelId,
           userId: user!.id,
           apiUrl: VOICE_API,
+          userRole: user!.role,
           onPeerJoin: (peerId, name) => {
+            playJoinSound();
             toast.info(`${name} присоединился к каналу`);
           },
           onPeerLeave: (peerId) => {
+            playLeaveSound();
             toast.info('Участник покинул канал');
             setSpeakingUsers(prev => {
               const next = new Set(prev);
@@ -255,6 +259,20 @@ const Index = () => {
       }
     };
   }, []);
+
+  const handleDeleteMessage = async (messageId: number) => {
+    if (user?.role !== 'Офицер') return;
+    
+    await fetch(`${CHAT_API}?message_id=${messageId}`, {
+      method: 'DELETE',
+      headers: { 
+        'Content-Type': 'application/json',
+        'X-User-Role': user.role
+      }
+    });
+    toast.success('Сообщение удалено');
+    loadMessages();
+  };
 
   const handleSendMessage = async () => {
     if (messageInput.trim() && user) {
@@ -434,7 +452,7 @@ const Index = () => {
                   </div>
                 ) : (
                   messages.map((msg) => (
-                    <div key={msg.id} className="flex gap-3 hover:bg-muted/50 p-2 rounded transition-colors">
+                    <div key={msg.id} className="group flex gap-3 hover:bg-muted/50 p-2 rounded transition-colors relative">
                       <Avatar className="h-10 w-10 border border-border">
                         <AvatarImage src={msg.avatar} />
                         <AvatarFallback>{msg.author[0]}</AvatarFallback>
@@ -451,6 +469,16 @@ const Index = () => {
                         </div>
                         <p className="text-sm text-foreground/90">{msg.content}</p>
                       </div>
+                      {user?.role === 'Офицер' && (
+                        <Button 
+                          size="icon" 
+                          variant="ghost" 
+                          className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity h-8 w-8 text-destructive hover:bg-destructive/20"
+                          onClick={() => handleDeleteMessage(msg.id)}
+                        >
+                          <Icon name="Trash2" size={14} />
+                        </Button>
+                      )}
                     </div>
                   ))
                 )}
