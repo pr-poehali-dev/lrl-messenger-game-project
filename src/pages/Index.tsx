@@ -65,6 +65,7 @@ const Index = () => {
   const [isMicMuted, setIsMicMuted] = useState(false);
   const [speakingUsers, setSpeakingUsers] = useState<Set<string>>(new Set());
   const [voiceChannelPeers, setVoiceChannelPeers] = useState<any[]>([]);
+  const [isAuthLoading, setIsAuthLoading] = useState(false);
   const voiceChatRef = useRef<VoiceChat | null>(null);
 
   useEffect(() => {
@@ -127,32 +128,47 @@ const Index = () => {
   };
 
   const handleAuth = async () => {
-    if (!username || !password) return;
-
-    const body: any = {
-      action: authMode,
-      username,
-      password
-    };
-
-    if (authMode === 'register') {
-      body.display_name = displayName || username;
-      body.role = 'Солдат';
+    if (!username || !password) {
+      toast.error('Введите имя пользователя и пароль');
+      return;
     }
 
-    const response = await fetch(AUTH_API, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body)
-    });
+    setIsAuthLoading(true);
 
-    const data = await response.json();
+    try {
+      const body: any = {
+        action: authMode,
+        username,
+        password
+      };
 
-    if (response.ok) {
-      setUser(data.user);
-      localStorage.setItem('lrl_user', JSON.stringify(data.user));
-      localStorage.setItem('lrl_token', data.token);
-      setShowAuth(false);
+      if (authMode === 'register') {
+        body.display_name = displayName || username;
+        body.role = 'Солдат';
+      }
+
+      const response = await fetch(AUTH_API, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        setUser(data.user);
+        localStorage.setItem('lrl_user', JSON.stringify(data.user));
+        localStorage.setItem('lrl_token', data.token);
+        setShowAuth(false);
+        toast.success(`Добро пожаловать, ${data.user.display_name}!`);
+      } else {
+        toast.error(data.error || 'Ошибка авторизации');
+      }
+    } catch (error) {
+      console.error('Auth error:', error);
+      toast.error('Не удалось подключиться к серверу');
+    } finally {
+      setIsAuthLoading(false);
     }
   };
 
@@ -334,9 +350,10 @@ const Index = () => {
             )}
             <Button
               onClick={handleAuth}
+              disabled={isAuthLoading}
               className="w-full military-corner-small"
             >
-              {authMode === 'login' ? 'Войти' : 'Зарегистрироваться'}
+              {isAuthLoading ? 'Загрузка...' : (authMode === 'login' ? 'Войти' : 'Зарегистрироваться')}
             </Button>
             <Button
               variant="ghost"
