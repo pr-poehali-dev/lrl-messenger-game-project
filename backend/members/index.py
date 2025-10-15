@@ -2,7 +2,6 @@ import json
 import os
 from typing import Dict, Any
 import psycopg2
-from psycopg2.extras import RealDictCursor
 
 def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     '''
@@ -21,6 +20,7 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                 'Access-Control-Allow-Headers': 'Content-Type',
                 'Access-Control-Max-Age': '86400'
             },
+            'isBase64Encoded': False,
             'body': ''
         }
     
@@ -33,10 +33,22 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     
     dsn = os.environ.get('DATABASE_URL')
     conn = psycopg2.connect(dsn)
+    cur = conn.cursor()
     
-    with conn.cursor(cursor_factory=RealDictCursor) as cur:
-        cur.execute('SELECT id, name, role, status, avatar FROM members ORDER BY id')
-        members = cur.fetchall()
+    cur.execute('SELECT id, name, role, status, avatar FROM members ORDER BY id')
+    rows = cur.fetchall()
+    
+    members = []
+    for row in rows:
+        members.append({
+            'id': row[0],
+            'name': row[1],
+            'role': row[2],
+            'status': row[3],
+            'avatar': row[4]
+        })
+    
+    cur.close()
     
     conn.close()
     
