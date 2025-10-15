@@ -147,13 +147,18 @@ const Index = () => {
         body.role = 'Солдат';
       }
 
+      console.log('Sending auth request to:', AUTH_API);
+      console.log('Request body:', body);
+
       const response = await fetch(AUTH_API, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body)
       });
 
+      console.log('Response status:', response.status);
       const data = await response.json();
+      console.log('Response data:', data);
 
       if (response.ok) {
         setUser(data.user);
