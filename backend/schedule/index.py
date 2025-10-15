@@ -2,7 +2,6 @@ import json
 import os
 from typing import Dict, Any
 import psycopg2
-from psycopg2.extras import RealDictCursor
 
 def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     '''
@@ -33,11 +32,22 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     
     dsn = os.environ.get('DATABASE_URL')
     conn = psycopg2.connect(dsn)
+    cur = conn.cursor()
     
-    with conn.cursor(cursor_factory=RealDictCursor) as cur:
-        cur.execute('SELECT id, title, time, date, description FROM schedule ORDER BY id')
-        events = cur.fetchall()
+    cur.execute('SELECT id, title, time, date, description FROM schedule ORDER BY id')
+    rows = cur.fetchall()
     
+    events = []
+    for row in rows:
+        events.append({
+            'id': row[0],
+            'title': row[1],
+            'time': row[2],
+            'date': row[3],
+            'description': row[4]
+        })
+    
+    cur.close()
     conn.close()
     
     return {

@@ -4,7 +4,6 @@ import hashlib
 import secrets
 from typing import Dict, Any
 import psycopg2
-from psycopg2.extras import RealDictCursor
 
 def hash_password(password: str) -> str:
     return hashlib.sha256(password.encode()).hexdigest()
@@ -63,33 +62,42 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         role = body_data.get('role', 'Солдат')
         password_hash = hash_password(password)
         
-        with conn.cursor(cursor_factory=RealDictCursor) as cur:
-            cur.execute('SELECT id FROM users WHERE username = %s', (username,))
-            if cur.fetchone():
-                conn.close()
-                return {
-                    'statusCode': 400,
-                    'headers': {
-                        'Content-Type': 'application/json',
-                        'Access-Control-Allow-Origin': '*'
-                    },
-                    'isBase64Encoded': False,
-                    'body': json.dumps({'error': 'Username already exists'})
-                }
-            
-            cur.execute('''
-                INSERT INTO users (username, password_hash, display_name, role)
-                VALUES (%s, %s, %s, %s)
-                RETURNING id, username, display_name, role, avatar
-            ''', (username, password_hash, display_name, role))
-            user = cur.fetchone()
-            
-            cur.execute('''
-                INSERT INTO members (name, role, status, avatar)
-                VALUES (%s, %s, %s, %s)
-            ''', (display_name, role, 'online', user['avatar']))
-            
-            conn.commit()
+        cur = conn.cursor()
+        cur.execute(f"SELECT id FROM users WHERE username = '{username}'")
+        if cur.fetchone():
+            cur.close()
+            conn.close()
+            return {
+                'statusCode': 400,
+                'headers': {
+                    'Content-Type': 'application/json',
+                    'Access-Control-Allow-Origin': '*'
+                },
+                'isBase64Encoded': False,
+                'body': json.dumps({'error': 'Username already exists'})
+            }
+        
+        cur.execute(f'''
+            INSERT INTO users (username, password_hash, display_name, role)
+            VALUES ('{username}', '{password_hash}', '{display_name}', '{role}')
+            RETURNING id, username, display_name, role, avatar
+        ''')
+        user_row = cur.fetchone()
+        user = {
+            'id': user_row[0],
+            'username': user_row[1],
+            'display_name': user_row[2],
+            'role': user_row[3],
+            'avatar': user_row[4]
+        }
+        
+        cur.execute(f'''
+            INSERT INTO members (name, role, status, avatar)
+            VALUES ('{display_name}', '{role}', 'online', '{user["avatar"]}')
+        ''')
+        
+        conn.commit()
+        cur.close()
         
         conn.close()
         
@@ -111,17 +119,18 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     if action == 'login':
         password_hash = hash_password(password)
         
-        with conn.cursor(cursor_factory=RealDictCursor) as cur:
-            cur.execute('''
-                SELECT id, username, display_name, role, avatar
-                FROM users
-                WHERE username = %s AND password_hash = %s
-            ''', (username, password_hash))
-            user = cur.fetchone()
+        cur = conn.cursor()
+        cur.execute(f'''
+            SELECT id, username, display_name, role, avatar
+            FROM users
+            WHERE username = '{username}' AND password_hash = '{password_hash}'
+        ''')
+        user_row = cur.fetchone()
         
+        cur.close()
         conn.close()
         
-        if not user:
+        if not user_row:
             return {
                 'statusCode': 401,
                 'headers': {
@@ -131,6 +140,14 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                 'isBase64Encoded': False,
                 'body': json.dumps({'error': 'Invalid credentials'})
             }
+        
+        user = {
+            'id': user_row[0],
+            'username': user_row[1],
+            'display_name': user_row[2],
+            'role': user_row[3],
+            'avatar': user_row[4]
+        }
         
         token = generate_token()
         

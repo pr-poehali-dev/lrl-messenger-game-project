@@ -46,7 +46,7 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                 
                 result_channels = []
                 for channel in channels:
-                    cur.execute('SELECT COUNT(*) FROM voice_connections WHERE channel_id = %s AND disconnected_at IS NULL', (channel[0],))
+                    cur.execute(f"SELECT COUNT(*) FROM voice_connections WHERE channel_id = {channel[0]} AND disconnected_at IS NULL")
                     user_count = cur.fetchone()[0]
                     
                     result_channels.append({
@@ -74,12 +74,12 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                         'body': json.dumps({'error': 'channel_id required'})
                     }
                 
-                cur.execute('''
+                cur.execute(f'''
                     SELECT vc.peer_id, u.display_name, u.avatar 
                     FROM voice_connections vc
                     JOIN users u ON vc.user_id = u.id
-                    WHERE vc.channel_id = %s AND vc.disconnected_at IS NULL
-                ''', (channel_id,))
+                    WHERE vc.channel_id = {channel_id} AND vc.disconnected_at IS NULL
+                ''')
                 peers = cur.fetchall()
                 
                 result_peers = [{'peer_id': p[0], 'name': p[1], 'avatar': p[2]} for p in peers]
@@ -110,10 +110,10 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                         'body': json.dumps({'error': 'channel_id, user_id, peer_id required'})
                     }
                 
-                cur.execute('''
+                cur.execute(f'''
                     INSERT INTO voice_connections (channel_id, user_id, peer_id, connected_at)
-                    VALUES (%s, %s, %s, NOW())
-                ''', (channel_id, user_id, peer_id))
+                    VALUES ({channel_id}, {user_id}, '{peer_id}', NOW())
+                ''')
                 conn.commit()
                 
                 return {
@@ -136,11 +136,11 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                         'body': json.dumps({'error': 'peer_id required'})
                     }
                 
-                cur.execute('''
+                cur.execute(f'''
                     UPDATE voice_connections 
                     SET disconnected_at = NOW() 
-                    WHERE peer_id = %s AND disconnected_at IS NULL
-                ''', (peer_id,))
+                    WHERE peer_id = '{peer_id}' AND disconnected_at IS NULL
+                ''')
                 conn.commit()
                 
                 return {
