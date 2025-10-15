@@ -55,7 +55,19 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         }
     
     dsn = os.environ.get('DATABASE_URL')
-    conn = psycopg2.connect(dsn)
+    
+    try:
+        conn = psycopg2.connect(dsn)
+    except Exception as e:
+        return {
+            'statusCode': 500,
+            'headers': {
+                'Content-Type': 'application/json',
+                'Access-Control-Allow-Origin': '*'
+            },
+            'isBase64Encoded': False,
+            'body': json.dumps({'error': 'Database connection failed'})
+        }
     
     if action == 'register':
         display_name = body_data.get('display_name', username)
@@ -63,7 +75,9 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         password_hash = hash_password(password)
         
         cur = conn.cursor()
-        cur.execute(f"SELECT id FROM users WHERE username = '{username}'")
+        
+        safe_username = username.replace("'", "''")
+        cur.execute(f"SELECT id FROM users WHERE username = '{safe_username}'")
         if cur.fetchone():
             cur.close()
             conn.close()
@@ -77,9 +91,12 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                 'body': json.dumps({'error': 'Username already exists'})
             }
         
+        safe_display_name = display_name.replace("'", "''")
+        safe_role = role.replace("'", "''")
+        
         cur.execute(f'''
             INSERT INTO users (username, password_hash, display_name, role)
-            VALUES ('{username}', '{password_hash}', '{display_name}', '{role}')
+            VALUES ('{safe_username}', '{password_hash}', '{safe_display_name}', '{safe_role}')
             RETURNING id, username, display_name, role, avatar
         ''')
         user_row = cur.fetchone()
@@ -118,12 +135,13 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     
     if action == 'login':
         password_hash = hash_password(password)
+        safe_username = username.replace("'", "''")
         
         cur = conn.cursor()
         cur.execute(f'''
             SELECT id, username, display_name, role, avatar
             FROM users
-            WHERE username = '{username}' AND password_hash = '{password_hash}'
+            WHERE username = '{safe_username}' AND password_hash = '{password_hash}'
         ''')
         user_row = cur.fetchone()
         
