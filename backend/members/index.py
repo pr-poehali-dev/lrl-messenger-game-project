@@ -35,7 +35,7 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     conn = psycopg2.connect(dsn)
     cur = conn.cursor()
     
-    cur.execute('SELECT id, name, role, status, avatar FROM members ORDER BY id')
+    cur.execute('SELECT id, name, role, status, avatar FROM t_p55033217_lrl_messenger_game_p.members ORDER BY id')
     rows = cur.fetchall()
     
     members = []
